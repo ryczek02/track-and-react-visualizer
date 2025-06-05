@@ -1,7 +1,6 @@
 
 import { useState, useCallback } from 'react';
 import { Upload, FileText, X } from 'lucide-react';
-import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SensorData } from '@/types/SensorData';
@@ -15,6 +14,42 @@ const CSVUploader = ({ onDataLoad }: CSVUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+
+  const parseCSV = (text: string): SensorData[] => {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim());
+    const data: SensorData[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      if (values.length === headers.length && values[0]) {
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index];
+        });
+        
+        data.push({
+          timestamp: row.timestamp,
+          lat: parseFloat(row.lat) || 0,
+          lon: parseFloat(row.lon) || 0,
+          alt: parseFloat(row.alt) || 0,
+          sats: parseInt(row.sats) || 0,
+          accX: parseFloat(row.accX) || 0,
+          accY: parseFloat(row.accY) || 0,
+          accZ: parseFloat(row.accZ) || 0,
+          gyroX: parseFloat(row.gyroX) || 0,
+          gyroY: parseFloat(row.gyroY) || 0,
+          gyroZ: parseFloat(row.gyroZ) || 0,
+          pitch: parseFloat(row.pitch) || 0,
+          roll: parseFloat(row.roll) || 0,
+        });
+      }
+    }
+    
+    return data;
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -31,44 +66,17 @@ const CSVUploader = ({ onDataLoad }: CSVUploaderProps) => {
     setFileName(file.name);
     
     try {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          console.log('Parsed CSV data:', results.data);
-          
-          const parsedData: SensorData[] = results.data.map((row: any) => ({
-            timestamp: row.timestamp,
-            lat: parseFloat(row.lat) || 0,
-            lon: parseFloat(row.lon) || 0,
-            alt: parseFloat(row.alt) || 0,
-            sats: parseInt(row.sats) || 0,
-            accX: parseFloat(row.accX) || 0,
-            accY: parseFloat(row.accY) || 0,
-            accZ: parseFloat(row.accZ) || 0,
-            gyroX: parseFloat(row.gyroX) || 0,
-            gyroY: parseFloat(row.gyroY) || 0,
-            gyroZ: parseFloat(row.gyroZ) || 0,
-            pitch: parseFloat(row.pitch) || 0,
-            roll: parseFloat(row.roll) || 0,
-          })).filter(item => item.timestamp); // Filter out empty rows
-          
-          console.log('Processed data:', parsedData);
-          onDataLoad(parsedData);
-          
-          toast({
-            title: "CSV loaded successfully!",
-            description: `Processed ${parsedData.length} data points`,
-          });
-        },
-        error: (error) => {
-          console.error('CSV parsing error:', error);
-          toast({
-            variant: "destructive",
-            title: "Error parsing CSV",
-            description: error.message,
-          });
-        }
+      const text = await file.text();
+      console.log('Raw CSV text:', text);
+      
+      const parsedData = parseCSV(text);
+      console.log('Processed data:', parsedData);
+      
+      onDataLoad(parsedData);
+      
+      toast({
+        title: "CSV loaded successfully!",
+        description: `Processed ${parsedData.length} data points`,
       });
     } catch (error) {
       console.error('File processing error:', error);
