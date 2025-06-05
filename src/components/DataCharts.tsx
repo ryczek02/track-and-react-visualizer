@@ -1,5 +1,5 @@
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Brush } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SensorData } from '@/types/SensorData';
 
@@ -32,11 +32,11 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={350}>
             <LineChart
               data={data}
               onClick={handleChartClick}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis 
@@ -81,6 +81,12 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dot={false}
                 name="AccZ"
               />
+              <Brush 
+                dataKey="timestamp" 
+                height={30}
+                stroke="#8884d8"
+                tickFormatter={formatTimestamp}
+              />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -95,11 +101,11 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={350}>
             <LineChart
               data={data}
               onClick={handleChartClick}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis 
@@ -143,6 +149,12 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 strokeWidth={2}
                 dot={false}
                 name="GyroZ"
+              />
+              <Brush 
+                dataKey="timestamp" 
+                height={30}
+                stroke="#8884d8"
+                tickFormatter={formatTimestamp}
               />
             </LineChart>
           </ResponsiveContainer>
