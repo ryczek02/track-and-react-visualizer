@@ -11,8 +11,9 @@ interface DataChartsProps {
 
 const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps) => {
   const handleChartClick = (event: any) => {
-    if (event && event.activeLabel) {
-      onPointSelect(event.activeLabel);
+    if (event && event.activePayload && event.activePayload.length > 0) {
+      const timestamp = event.activePayload[0].payload.timestamp;
+      onPointSelect(timestamp);
     }
   };
 

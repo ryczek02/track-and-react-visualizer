@@ -3,8 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { SensorData } from '@/types/SensorData';
 
 // Fix for default markers in Leaflet
@@ -27,7 +25,26 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
   const polyline = useRef<L.Polyline | null>(null);
   const markers = useRef<{ [key: string]: L.CircleMarker }>({});
   const selectedMarker = useRef<L.CircleMarker | null>(null);
-  const [mapboxToken, setMapboxToken] = useState('');
+  const [mapStats, setMapStats] = useState({ totalPoints: 0, validGPS: 0, distance: 0 });
+
+  const calculateDistance = (coordinates: [number, number][]) => {
+    let totalDistance = 0;
+    for (let i = 1; i < coordinates.length; i++) {
+      const [lat1, lon1] = coordinates[i - 1];
+      const [lat2, lon2] = coordinates[i];
+      
+      // Haversine formula for distance calculation
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      totalDistance += R * c;
+    }
+    return totalDistance;
+  };
 
   useEffect(() => {
     if (!mapContainer.current || data.length === 0) return;
@@ -56,10 +73,21 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
     // Filter valid GPS coordinates
     const validData = data.filter(point => point.lat !== 0 && point.lon !== 0);
     
-    if (validData.length === 0) return;
+    if (validData.length === 0) {
+      setMapStats({ totalPoints: data.length, validGPS: 0, distance: 0 });
+      return;
+    }
 
     // Create GPS track polyline
     const coordinates = validData.map(point => [point.lat, point.lon] as [number, number]);
+    const distance = calculateDistance(coordinates);
+    
+    setMapStats({ 
+      totalPoints: data.length, 
+      validGPS: validData.length, 
+      distance: Math.round(distance * 100) / 100 
+    });
+
     polyline.current = L.polyline(coordinates, {
       color: '#3b82f6',
       weight: 3,
@@ -77,14 +105,37 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
         fillOpacity: 0.8
       }).addTo(map.current!);
 
+      const selectedPoint = data.find(p => p.timestamp === selectedTimestamp);
+      const magnitude = Math.sqrt(point.accX ** 2 + point.accY ** 2 + point.accZ ** 2);
+      const gyroMagnitude = Math.sqrt(point.gyroX ** 2 + point.gyroY ** 2 + point.gyroZ ** 2);
+
       marker.bindPopup(`
-        <div class="space-y-2">
-          <div><strong>Time:</strong> ${new Date(point.timestamp).toLocaleString()}</div>
-          <div><strong>Position:</strong> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}</div>
-          <div><strong>Altitude:</strong> ${point.alt.toFixed(1)}m</div>
-          <div><strong>Satellites:</strong> ${point.sats}</div>
-          <div><strong>Accelerometer:</strong> X: ${point.accX.toFixed(2)}, Y: ${point.accY.toFixed(2)}, Z: ${point.accZ.toFixed(2)}</div>
-          <div><strong>Gyroscope:</strong> X: ${point.gyroX.toFixed(2)}, Y: ${point.gyroY.toFixed(2)}, Z: ${point.gyroZ.toFixed(2)}</div>
+        <div class="space-y-2 min-w-64">
+          <div class="font-semibold text-center border-b pb-2">${new Date(point.timestamp).toLocaleString()}</div>
+          
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div><strong>Position:</strong></div>
+            <div>${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}</div>
+            
+            <div><strong>Altitude:</strong></div>
+            <div>${point.alt.toFixed(1)}m</div>
+            
+            <div><strong>Satellites:</strong></div>
+            <div>${point.sats}</div>
+            
+            <div><strong>Pitch/Roll:</strong></div>
+            <div>${point.pitch.toFixed(1)}° / ${point.roll.toFixed(1)}°</div>
+          </div>
+          
+          <div class="space-y-1 text-sm">
+            <div class="font-medium">Accelerometer (m/s²):</div>
+            <div class="pl-2">X: ${point.accX.toFixed(2)}, Y: ${point.accY.toFixed(2)}, Z: ${point.accZ.toFixed(2)}</div>
+            <div class="pl-2">Magnitude: ${magnitude.toFixed(2)}</div>
+            
+            <div class="font-medium">Gyroscope (°/s):</div>
+            <div class="pl-2">X: ${point.gyroX.toFixed(2)}, Y: ${point.gyroY.toFixed(2)}, Z: ${point.gyroZ.toFixed(2)}</div>
+            <div class="pl-2">Magnitude: ${gyroMagnitude.toFixed(2)}</div>
+          </div>
         </div>
       `);
 
@@ -118,28 +169,12 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
           opacity: 1,
           fillOpacity: 0.9
         }).addTo(map.current!);
+
+        // Pan to selected point
+        map.current?.panTo([point.lat, point.lon]);
       }
     }
   }, [selectedTimestamp, data]);
-
-  const handleMapboxTokenChange = (token: string) => {
-    setMapboxToken(token);
-    if (map.current && token.trim()) {
-      // Remove existing tile layers
-      map.current.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer) {
-          map.current!.removeLayer(layer);
-        }
-      });
-
-      // Add Mapbox satellite layer
-      L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=${token}`, {
-        attribution: '© Mapbox',
-        tileSize: 512,
-        zoomOffset: -1
-      }).addTo(map.current);
-    }
-  };
 
   return (
     <Card>
@@ -148,21 +183,16 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
           <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-full"></div>
           GPS Track Map
         </CardTitle>
-        <div className="space-y-2">
-          <Label htmlFor="mapbox-token" className="text-sm text-gray-600">
-            Optional: Enter Mapbox token for satellite imagery
-          </Label>
-          <Input
-            id="mapbox-token"
-            type="text"
-            placeholder="pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6ImNsay..."
-            value={mapboxToken}
-            onChange={(e) => handleMapboxTokenChange(e.target.value)}
-            className="text-sm"
-          />
-          <p className="text-xs text-gray-500">
-            Get your free token at <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">mapbox.com</a>
-          </p>
+        <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
+          <div>
+            <span className="font-medium">Total Points:</span> {mapStats.totalPoints}
+          </div>
+          <div>
+            <span className="font-medium">Valid GPS:</span> {mapStats.validGPS}
+          </div>
+          <div>
+            <span className="font-medium">Distance:</span> {mapStats.distance} km
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -174,6 +204,7 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
           <p>• <span className="text-blue-500 font-medium">Blue line</span>: GPS track</p>
           <p>• <span className="text-green-500 font-medium">Green dots</span>: Data points (click to select)</p>
           <p>• <span className="text-purple-500 font-medium">Purple dot</span>: Selected timestamp</p>
+          <p>• Click on chart points to select corresponding map locations</p>
         </div>
       </CardContent>
     </Card>
