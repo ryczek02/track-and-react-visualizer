@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Brush } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SensorData } from '@/types/SensorData';
@@ -10,15 +11,31 @@ interface DataChartsProps {
 }
 
 const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps) => {
+  const [brushDomain, setBrushDomain] = useState<[number, number] | null>(null);
+
   const handleChartClick = (event: any) => {
     if (event && event.activeLabel) {
       onPointSelect(event.activeLabel);
     }
   };
 
+  const handleBrushChange = (domain: { startIndex?: number; endIndex?: number }) => {
+    if (domain.startIndex !== undefined && domain.endIndex !== undefined) {
+      setBrushDomain([domain.startIndex, domain.endIndex]);
+    } else {
+      setBrushDomain(null);
+    }
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString();
+  };
+
+  // Check if a point is in the current zoom range
+  const isPointInZoom = (index: number) => {
+    if (!brushDomain) return true;
+    return index >= brushDomain[0] && index <= brushDomain[1];
   };
 
   return (
@@ -62,7 +79,10 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dataKey="accX" 
                 stroke="#ef4444" 
                 strokeWidth={2}
-                dot={false}
+                dot={(props: any) => {
+                  const isInZoom = isPointInZoom(props.payload?.index || 0);
+                  return isInZoom ? { ...props, fill: "#ef4444", r: 3 } : false;
+                }}
                 name="AccX"
               />
               <Line 
@@ -70,7 +90,10 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dataKey="accY" 
                 stroke="#22c55e" 
                 strokeWidth={2}
-                dot={false}
+                dot={(props: any) => {
+                  const isInZoom = isPointInZoom(props.payload?.index || 0);
+                  return isInZoom ? { ...props, fill: "#22c55e", r: 3 } : false;
+                }}
                 name="AccY"
               />
               <Line 
@@ -78,7 +101,10 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dataKey="accZ" 
                 stroke="#3b82f6" 
                 strokeWidth={2}
-                dot={false}
+                dot={(props: any) => {
+                  const isInZoom = isPointInZoom(props.payload?.index || 0);
+                  return isInZoom ? { ...props, fill: "#3b82f6", r: 3 } : false;
+                }}
                 name="AccZ"
               />
               <Brush 
@@ -86,6 +112,9 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 height={30}
                 stroke="#8884d8"
                 tickFormatter={formatTimestamp}
+                onChange={handleBrushChange}
+                startIndex={brushDomain?.[0]}
+                endIndex={brushDomain?.[1]}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -131,7 +160,10 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dataKey="gyroX" 
                 stroke="#f97316" 
                 strokeWidth={2}
-                dot={false}
+                dot={(props: any) => {
+                  const isInZoom = isPointInZoom(props.payload?.index || 0);
+                  return isInZoom ? { ...props, fill: "#f97316", r: 3 } : false;
+                }}
                 name="GyroX"
               />
               <Line 
@@ -139,7 +171,10 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dataKey="gyroY" 
                 stroke="#8b5cf6" 
                 strokeWidth={2}
-                dot={false}
+                dot={(props: any) => {
+                  const isInZoom = isPointInZoom(props.payload?.index || 0);
+                  return isInZoom ? { ...props, fill: "#8b5cf6", r: 3 } : false;
+                }}
                 name="GyroY"
               />
               <Line 
@@ -147,7 +182,10 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 dataKey="gyroZ" 
                 stroke="#06b6d4" 
                 strokeWidth={2}
-                dot={false}
+                dot={(props: any) => {
+                  const isInZoom = isPointInZoom(props.payload?.index || 0);
+                  return isInZoom ? { ...props, fill: "#06b6d4", r: 3 } : false;
+                }}
                 name="GyroZ"
               />
               <Brush 
@@ -155,6 +193,9 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 height={30}
                 stroke="#8884d8"
                 tickFormatter={formatTimestamp}
+                onChange={handleBrushChange}
+                startIndex={brushDomain?.[0]}
+                endIndex={brushDomain?.[1]}
               />
             </LineChart>
           </ResponsiveContainer>
