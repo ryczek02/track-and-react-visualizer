@@ -95,7 +95,7 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
     }).addTo(map.current!);
 
     // Add clickable markers for each point
-    validData.forEach((point) => {
+    validData.forEach((point, index) => {
       const marker = L.circleMarker([point.lat, point.lon], {
         radius: 4,
         fillColor: '#10b981',
@@ -105,6 +105,7 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
         fillOpacity: 0.8
       }).addTo(map.current!);
 
+      const selectedPoint = data.find(p => p.timestamp === selectedTimestamp);
       const magnitude = Math.sqrt(point.accX ** 2 + point.accY ** 2 + point.accZ ** 2);
       const gyroMagnitude = Math.sqrt(point.gyroX ** 2 + point.gyroY ** 2 + point.gyroZ ** 2);
 
@@ -139,7 +140,6 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
       `);
 
       marker.on('click', () => {
-        console.log('Map marker clicked:', point.timestamp);
         onPointSelect(point.timestamp);
       });
 
@@ -147,25 +147,19 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
     });
 
     // Fit map to show all points
-    if (polyline.current) {
-      map.current.fitBounds(polyline.current.getBounds(), { padding: [20, 20] });
-    }
+    map.current.fitBounds(polyline.current.getBounds(), { padding: [20, 20] });
 
-  }, [data, onPointSelect]);
+  }, [data]);
 
   // Update selected point visualization
   useEffect(() => {
-    console.log('Selected timestamp changed:', selectedTimestamp);
-    
     if (selectedMarker.current) {
       selectedMarker.current.remove();
       selectedMarker.current = null;
     }
 
-    if (selectedTimestamp && map.current) {
+    if (selectedTimestamp && markers.current[selectedTimestamp]) {
       const point = data.find(p => p.timestamp === selectedTimestamp);
-      console.log('Found point for timestamp:', point);
-      
       if (point && point.lat !== 0 && point.lon !== 0) {
         selectedMarker.current = L.circleMarker([point.lat, point.lon], {
           radius: 8,
@@ -174,11 +168,10 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
           weight: 3,
           opacity: 1,
           fillOpacity: 0.9
-        }).addTo(map.current);
+        }).addTo(map.current!);
 
         // Pan to selected point
-        map.current.panTo([point.lat, point.lon]);
-        console.log('Added selected marker at:', point.lat, point.lon);
+        map.current?.panTo([point.lat, point.lon]);
       }
     }
   }, [selectedTimestamp, data]);
