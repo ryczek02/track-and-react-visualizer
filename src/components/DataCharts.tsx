@@ -10,10 +10,11 @@ interface DataChartsProps {
 }
 
 const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps) => {
-  const handleChartClick = (event: any) => {
-    if (event && event.activePayload && event.activePayload.length > 0) {
-      const timestamp = event.activePayload[0].payload.timestamp;
-      onPointSelect(timestamp);
+  const handleChartClick = (data: any) => {
+    console.log('Chart clicked:', data);
+    if (data && data.activeLabel) {
+      console.log('Selected timestamp:', data.activeLabel);
+      onPointSelect(data.activeLabel);
     }
   };
 
@@ -53,7 +54,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
               {selectedTimestamp && (
                 <ReferenceLine 
                   x={selectedTimestamp} 
-                  stroke="purple" 
+                  stroke="#8b5cf6" 
                   strokeWidth={2}
                   strokeDasharray="5 5"
                 />
@@ -64,6 +65,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 stroke="#ef4444" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 6, fill: '#ef4444' }}
                 name="AccX"
               />
               <Line 
@@ -72,6 +74,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 stroke="#22c55e" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 6, fill: '#22c55e' }}
                 name="AccY"
               />
               <Line 
@@ -80,6 +83,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 stroke="#3b82f6" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 6, fill: '#3b82f6' }}
                 name="AccZ"
               />
             </LineChart>
@@ -116,7 +120,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
               {selectedTimestamp && (
                 <ReferenceLine 
                   x={selectedTimestamp} 
-                  stroke="purple" 
+                  stroke="#8b5cf6" 
                   strokeWidth={2}
                   strokeDasharray="5 5"
                 />
@@ -127,6 +131,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 stroke="#f97316" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 6, fill: '#f97316' }}
                 name="GyroX"
               />
               <Line 
@@ -135,6 +140,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 stroke="#8b5cf6" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 6, fill: '#8b5cf6' }}
                 name="GyroY"
               />
               <Line 
@@ -143,6 +149,7 @@ const DataCharts = ({ data, selectedTimestamp, onPointSelect }: DataChartsProps)
                 stroke="#06b6d4" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 6, fill: '#06b6d4' }}
                 name="GyroZ"
               />
             </LineChart>
