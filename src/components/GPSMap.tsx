@@ -156,17 +156,24 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
   // Update selected point visualization
   useEffect(() => {
     console.log('Selected timestamp changed:', selectedTimestamp);
+    console.log('Available data points:', data.length);
+    console.log('Available markers:', Object.keys(markers.current));
     
+    // Remove existing selected marker
     if (selectedMarker.current) {
       selectedMarker.current.remove();
       selectedMarker.current = null;
     }
 
     if (selectedTimestamp && map.current) {
+      // Find the point with exact timestamp match
       const point = data.find(p => p.timestamp === selectedTimestamp);
-      console.log('Found point for timestamp:', point);
+      console.log('Looking for timestamp:', selectedTimestamp);
+      console.log('Found point:', point);
       
       if (point && point.lat !== 0 && point.lon !== 0) {
+        console.log('Creating selected marker at:', point.lat, point.lon);
+        
         selectedMarker.current = L.circleMarker([point.lat, point.lon], {
           radius: 8,
           fillColor: '#8b5cf6',
@@ -178,7 +185,9 @@ const GPSMap = ({ data, selectedTimestamp, onPointSelect }: GPSMapProps) => {
 
         // Pan to selected point
         map.current.panTo([point.lat, point.lon]);
-        console.log('Added selected marker at:', point.lat, point.lon);
+        console.log('Successfully added selected marker');
+      } else {
+        console.log('Point not found or invalid coordinates');
       }
     }
   }, [selectedTimestamp, data]);
